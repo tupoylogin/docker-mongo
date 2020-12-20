@@ -17,6 +17,7 @@ echo "Started.."
 echo "${MONGO_INITDB_ROOT_USERNAME}"
 
 mongo --host ${mongodb1}:${port} <<EOF
+   use admin;
    var cfg = {
         "_id": "${RS}",
         "protocolVersion": 1,
@@ -37,15 +38,14 @@ mongo --host ${mongodb1}:${port} <<EOF
         ]
     };
     rs.initiate(cfg, { force: true });
-    rs.reconfig(cfg, { force: true });
 EOF
-
+#rs.reconfig(cfg, { force: true });
 mongo -u ${MONGO_INITDB_ROOT_USERNAME} -p ${MONGO_INITDB_ROOT_USERNAME} --host ${mongodb1}:${port} <<EOF
     admin = db.getSiblingDB("admin");
     admin.createUser(
     {
-        user: "${MONGO_INITDB_ROOT_USERNAME}",
-        pwd: "${MONGO_INITDB_ROOT_PASSWORD}",
+        user: "clRoot",
+        pwd: "clRoot",
         roles: [
       { role: "clusterAdmin", db: "admin" },
       { role: "userAdmin", db: "admin" }
@@ -53,5 +53,5 @@ mongo -u ${MONGO_INITDB_ROOT_USERNAME} -p ${MONGO_INITDB_ROOT_USERNAME} --host $
     }
     );
 EOF
-#mongo -u ${MONGO_INITDB_ROOT_USERNAME} -p ${MONGO_INITDB_ROOT_USERNAME} --eval 'use test;'
-#mongoimport --type csv -d test -c postcodes_nov_14 --headerline --file ./data/London_postcode-ONS-postcode-Directory-Nov14.csv
+mongo -u ${MONGO_INITDB_ROOT_USERNAME} -p ${MONGO_INITDB_ROOT_USERNAME} --eval 'use test;'
+mongoimport --type csv -d test -c postcodes_nov_14 --headerline --file ./data/London_postcode-ONS-postcode-Directory-Nov14.csv

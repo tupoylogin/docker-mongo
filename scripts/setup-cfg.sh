@@ -15,6 +15,7 @@ done
 echo "Started.."
 
 mongo --host ${mongodb1}:${port} <<EOF
+   use admin;
    var cfg = {
         "_id": "${RS}",
         "configsvr": true,
@@ -28,9 +29,14 @@ mongo --host ${mongodb1}:${port} <<EOF
             {
                 "_id": 101,
                 "host": "${mongodb2}:${port}"
+            },
+            {
+                "_id": 102,
+                "host": "${mongodb3}:${port}"
             }
         ]
     };
     rs.initiate(cfg, { force: true });
-    rs.reconfig(cfg, { force: true });
+    
 EOF
+#rs.reconfig(cfg, { force: true });
