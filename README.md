@@ -2,7 +2,7 @@ Mongo Sharded Cluster with Docker Compose
 =========================================
 A simple sharded Mongo Cluster with a replication factor of 2 running in `docker` using `docker-compose`.
 
-Designed to be quick and simple to get a local or test environment up and running. Needless to say... DON'T USE THIS IN PRODUCTION!
+DON'T USE THIS IN PRODUCTION!
 
 ### Mongo Components
 
