@@ -7,6 +7,8 @@ mongodb3=`getent hosts ${MONGO3} | awk '{ print $1 }'`
 port=${PORT:-27017}
 
 echo "Waiting for startup.."
+echo "${MONGO_INITDB_ROOT_USERNAME}"
+
 until mongo --host ${mongodb1}:${port} --eval 'quit(db.runCommand({ ping: 1 }).ok ? 0 : 2)' &>/dev/null; do
   printf '.'
   sleep 1
@@ -14,33 +16,13 @@ done
 
 echo "Started.."
 
-echo "${MONGO_INITDB_ROOT_USERNAME}"
+template='{"_id": "%s", "protocolVersion": 1, "members": [{"_id": 0,"host": "%s"},{"_id": 1,"host": "%s"},{"_id": 2,"host": "%s"}]}'
+json_string=$(printf "${template}" "${RS}"  "${mongodb1}:${port}"  "${mongodb2}:${port}"  "${mongodb3}:${port}")
+
+
+mongo --host ${mongodb1}:${port} --eval "rs.initiate($json_string);"
 
 mongo --host ${mongodb1}:${port} <<EOF
-   use admin;
-   var cfg = {
-        "_id": "${RS}",
-        "protocolVersion": 1,
-        "members": [
-            {
-                "_id": 0,
-                "host": "${mongodb1}:${port}"
-                "priority": 2
-            },
-            {
-                "_id": 1,
-                "host": "${mongodb2}:${port}"
-            },
-            {
-                "_id": 2,
-                "host": "${mongodb3}:${port}"
-            }
-        ]
-    };
-    rs.initiate(cfg, { force: true });
-EOF
-#rs.reconfig(cfg, { force: true });
-mongo -u ${MONGO_INITDB_ROOT_USERNAME} -p ${MONGO_INITDB_ROOT_USERNAME} --host ${mongodb1}:${port} <<EOF
     admin = db.getSiblingDB("admin");
     admin.createUser(
     {

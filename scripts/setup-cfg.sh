@@ -6,37 +6,17 @@ mongodb3=`getent hosts ${MONGO3} | awk '{ print $1 }'`
 
 port=${PORT:-27017}
 
+template='{"_id": "%s", "configsvr": true, "protocolVersion": 1, "members": [{"_id": 0,"host": "%s"},{"_id": 1,"host": "%s"},{"_id": 2,"host": "%s"}]}'
+json_string=$(printf "${template}" "${RS}"  "${mongodb1}:${port}"  "${mongodb2}:${port}"  "${mongodb3}:${port}")
+
 echo "Waiting for startup.."
-until mongo --host ${mongodb1}:${port} --eval 'quit(db.runCommand({ ping: 1 }).ok ? 0 : 2)' &>/dev/null; do
-  printf '.'
+until mongo admin --host ${mongodb1}:${port} --eval 'quit(db.runCommand({ ping: 1 }).ok ? 0 : 2)' &>/dev/null; do
+  printf '-'
   sleep 1
 done
-
 echo "Started.."
 
-mongo --host ${mongodb1}:${port} <<EOF
-   use admin;
-   var cfg = {
-        "_id": "${RS}",
-        "configsvr": true,
-        "protocolVersion": 1,
-        "members": [
-            {
-                "_id": 100,
-                "host": "${mongodb1}:${port}",
-                "priority": 2
-            },
-            {
-                "_id": 101,
-                "host": "${mongodb2}:${port}"
-            },
-            {
-                "_id": 102,
-                "host": "${mongodb3}:${port}"
-            }
-        ]
-    };
-    rs.initiate(cfg, { force: true });
-    
-EOF
-#rs.reconfig(cfg, { force: true });
+mongo admin --host ${mongodb1}:${port} --eval "rs.initiate($json_string)"
+
+mongo admin --host ${mongodb1}:${port} < scripts/create-user-admin.js
+mongo admin --host ${mongodb1}:${port} --eval "db.getSiblingDB('test').createUser({user: 'foo', pwd: 'bar'})"

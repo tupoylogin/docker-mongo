@@ -1,4 +1,3 @@
-FROM mongo:latest
+FROM mongo:4.0.1
 
 RUN apt-get update && apt-get -y install curl
-RUN mongod --fork --logpath /var/log/mongod.log

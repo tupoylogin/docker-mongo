@@ -1,0 +1,1 @@
+sh.addShard("rs1/mongo-1-1:27017,mongo-1-2:27017,mongo-1-3:27017" ); sh.status();
