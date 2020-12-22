@@ -20,7 +20,6 @@ def calc_cost(distance: float, start_time: pd.datetime):
     else:
         traffic_distribution = norm().pdf(dtime, loc=8, scale=0.5)
         traffic_distribution /= norm().pdf(8, loc=8, scale=0.5)
-    
     cost *= 1+traffic_distribution*0.75
     return cost
 
