@@ -1,10 +1,14 @@
 #!/bin/bash
 
 ## Fake data
-python faker.py data/london_postcodes-ons-postcodes-directory-MAY20.csv data/rides.csv --num_rows=10_000_000
+#python faker.py data/london_postcodes-ons-postcodes-directory-MAY20.csv data/rides.csv --num_rows=10_000
 
 ## Start the whole stack
 docker-compose up -d 
+
+docker container ls
+
+sleep 15
 
 ## Config servers setup
 docker exec -it mongo-cfg-1 sh -c "mongo --port 27017 < /scripts/create-cnf-rs.js"
