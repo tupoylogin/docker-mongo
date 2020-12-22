@@ -2,6 +2,7 @@ import argparse
 
 import pandas as pd
 import numpy as np
+from scipy.stats import norm
 
 from geopy.distance import geodesic
 
@@ -10,17 +11,26 @@ def random_date_generator(start_date: str, range_in_days: int):
     random_date = np.datetime64(start_date) + np.random.default_rng().choice(days_to_add)
     yield random_date
 
-def calc_cost(start_time: pd.datetime, distance: float):
+def calc_cost(distance: float, start_time: pd.datetime):
     cost = 2 + 0.15 * distance
-    if (start_time.hour >= 8 and start_time.hour <= 9) or \
-        (start_time.hour >= 18 and start_time.hour <= 19):
-        cost *= 1.5
-    if (start_time.hour >= 22 or start_time.hour <= 6):
-        cost *= 1.3
+    dtime = start_time.hour+start_time.minute/60
+    if start_time.hour >=12:
+        traffic_distribution = norm().pdf(dtime, loc=18, scale=0.5)
+        traffic_distribution /= norm().pdf(18, loc=18, scale=0.5)
+    else:
+        traffic_distribution = norm().pdf(dtime, loc=8, scale=0.5)
+        traffic_distribution /= norm().pdf(8, loc=8, scale=0.5)
+    
+    cost *= 1+traffic_distribution*0.75
     return cost
 
-def calc_road_time(distance: float):
-    return distance*np.abs(np.random.default_rng().normal(0.1, 0.01))
+def calc_road_time(distance: float, day_time: pd.datetime):
+    dtime = day_time.hour+day_time.minute/60
+    if day_time.hour >=12:
+        traffic_distribution = norm().pdf(dtime, loc=18, scale=0.5)
+    else:
+        traffic_distribution = norm().pdf(dtime, loc=8, scale=0.5)
+    return distance*(np.abs(np.random.default_rng().normal(0.1, 0.01))+traffic_distribution*10)
 
 def read_prepare(path: str, num_records: int):
     df = pd.read_csv(path, delimiter=',')
@@ -44,9 +54,9 @@ def read_prepare(path: str, num_records: int):
                                                                                               rides['start_longtitude'], \
                                                                                               rides['finish_latitude'], \
                                                                                               rides['finish_longtitude'])]
-    rides['cost'] = [calc_cost(s, d) for s, d in zip(rides.start_time, rides.distance)]
+    rides['cost'] = rides.apply(lambda row: calc_cost(row.distance, row.start_time), axis=1)
     rides['cost'] = rides['cost'].round(2)
-    rides['road_time'] = rides['distance'].map(calc_road_time)
+    rides['road_time'] = rides.apply(lambda row: calc_road_time(row.distance, row.start_time), axis=1)
     driver_rate_idx = np.random.randint(low=0, high=num_records, size=int(num_records*0.3))
     driver_rate_distribution_arr = np.random.multinomial(1, [0.2, 0.05, 0.1, 0.25, 0.4], size=int(num_records*0.3))
     rides['driver_rate'][driver_rate_idx] = np.where(driver_rate_distribution_arr == 1)[1] + 1
