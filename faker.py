@@ -17,8 +17,12 @@ def random_date_generator(start_date: str, range_in_days: int, times: int):
     random_date = np.datetime64(f'{start_date}T00:00:00')
     print(start_date)
     for d in range(times):
-        random_date += np.timedelta64(np.random.default_rng().choice(seconds_to_add), 'S')
-        yield random_date
+        rd = np.random.default_rng().choice(seconds_to_add)
+        if rd>20:
+            td = np.timedelta64(rd, 's')
+        else:
+            td = np.timedelta64(20+rd, 's')
+        yield random_date+td
 
 def calc_cost(distance: float, start_time: pd.datetime):
     cost = 2 + 0.15 * distance
@@ -36,10 +40,12 @@ def calc_road_time(distance: float, day_time: pd.datetime):
     dtime = day_time.hour+day_time.minute/60
     if day_time.hour >=12:
         traffic_distribution = norm.pdf(dtime, 18, 0.5)
+        traffic_distribution /= norm.pdf(18, 18, 0.5)
     else:
         traffic_distribution = norm.pdf(dtime, 8, 0.5)
-    return pd.to_timedelta(distance*(np.abs(np.random.default_rng().normal(0.1, 0.01))
-                            +traffic_distribution*10), 'm')
+        traffic_distribution /= norm.pdf(8, 8, 0.5)
+    return pd.to_timedelta(distance*(np.abs(np.random.default_rng().normal(0.5, 0.1)))
+                            + traffic_distribution*45, 'm')
 
 def read_prepare(path: str, num_records: int):
     df = pd.read_csv(path)
@@ -68,7 +74,7 @@ def read_prepare(path: str, num_records: int):
     rides['finish_time'] = rides['start_time']+rides['road_time']
     rides['start_time'] = rides['start_time'].apply(lambda x: x.strftime("%Y-%m-%d %H:%M:%S"))
     rides['finish_time'] = rides['finish_time'].apply(lambda x: x.strftime("%Y-%m-%d %H:%M:%S"))
-    rides['road_time'] = rides['road_time'].apply(lambda x: f'{x.seconds//60}:{x.seconds%60}')
+    rides['road_time'] = rides['road_time'].apply(lambda x: x.seconds)
 
     
     driver_rate_idx = np.random.randint(low=0, high=num_records, size=int(num_records*0.3))
